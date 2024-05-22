@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Container, VStack, Text, Box, IconButton, Spinner } from "@chakra-ui/react";
-import { FaMicrophone, FaVideo } from "react-icons/fa";
+import { Container, VStack, Text, Box, Spinner } from "@chakra-ui/react";
+import { FaMicrophone } from "react-icons/fa";
 
 const Index = () => {
   const videoRef = useRef(null);
@@ -24,29 +24,49 @@ const Index = () => {
     getMedia();
   }, []);
 
-  const handleRecord = () => {
-    if (isRecording) {
-      // Stop recording
-      audioStream.getTracks().forEach((track) => track.stop());
-      videoStream.getTracks().forEach((track) => track.stop());
-      setIsRecording(false);
-      setStatus("waiting");
-
-      sendToGeminiAPI(audioStream)
-        .then((response) => {
-          setStatus("playing");
-          playResponse(response);
-        })
-        .catch((error) => {
-          console.error("Error sending to Gemini API", error);
-          setStatus("idle");
-        });
-    } else {
-      // Start recording
-      setIsRecording(true);
-      setStatus("recording");
-    }
+  const handleRecordStart = () => {
+    setIsRecording(true);
+    setStatus("recording");
   };
+
+  const handleRecordStop = () => {
+    audioStream.getTracks().forEach((track) => track.stop());
+    videoStream.getTracks().forEach((track) => track.stop());
+    setIsRecording(false);
+    setStatus("waiting");
+
+    sendToGeminiAPI(audioStream)
+      .then((response) => {
+        setStatus("playing");
+        playResponse(response);
+      })
+      .catch((error) => {
+        console.error("Error sending to Gemini API", error);
+        setStatus("idle");
+      });
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.code === "Space" && !isRecording) {
+        handleRecordStart();
+      }
+    };
+
+    const handleKeyUp = (event) => {
+      if (event.code === "Space" && isRecording) {
+        handleRecordStop();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [isRecording]);
 
   const sendToGeminiAPI = async (stream) => {
     return new Promise((resolve) => {
@@ -67,8 +87,7 @@ const Index = () => {
         <Box>
           <video ref={videoRef} autoPlay style={{ width: "100%", height: "auto" }} />
         </Box>
-        <IconButton aria-label="Record" icon={status === "recording" ? <FaMicrophone /> : <FaVideo />} size="lg" onClick={handleRecord} />
-        {status === "waiting" ? <Spinner size="lg" /> : <Text>{status === "recording" ? "Recording..." : status === "playing" ? "Playing response..." : "Click to start recording"}</Text>}
+        <Text>{status === "recording" ? "Recording..." : status === "waiting" ? "Sending to Gemini..." : status === "playing" ? "Playing response..." : "Press and hold spacebar to start recording"}</Text>
       </VStack>
     </Container>
   );
