@@ -83,16 +83,40 @@ const Index = () => {
   }, [isRecording]);
 
   const sendToGeminiAPI = async () => {
-    // Simulate sending audio data to Gemini API and receiving a response
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        resolve("Response from Gemini API");
-      }, 2000);
-    });
+    try {
+      const response = await fetch("https://api.your-gemini-endpoint.com/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.REACT_APP_GOOGLE_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "gemini-pro",
+          prompt: "Your audio data here",
+          stream: true,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let result;
+      while (!(result = await reader.read()).done) {
+        const chunk = decoder.decode(result.value, { stream: true });
+        console.log(chunk);
+        playResponse(chunk);
+      }
+    } catch (error) {
+      console.error("Error sending to Gemini API", error);
+      setStatus("idle");
+    }
   };
 
   const playResponse = (response) => {
-    const audio = new Audio("data:audio/wav;base64," + response);
+    const audio = new Audio("data:audio/wav;base64," + btoa(response));
     audio.play();
   };
 
