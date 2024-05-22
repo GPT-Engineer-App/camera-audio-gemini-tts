@@ -53,18 +53,10 @@ const Index = () => {
       }
     };
 
-    const handleKeyUp = (event) => {
-      if (event.code === "Space" && isRecording) {
-        handleRecordStop();
-      }
-    };
-
     window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
     };
   }, [isRecording]);
 
