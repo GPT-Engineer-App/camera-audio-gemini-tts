@@ -65,15 +65,9 @@ const Index = () => {
       if (event.code === "Space" && !isRecording) {
         handleRecordStart();
       }
-      if (event.code === "Space" && !isRecording) {
-        handleRecordStart();
-      }
     };
 
     const handleKeyUp = (event) => {
-      if (event.code === "Space" && isRecording) {
-        handleRecordStop();
-      }
       if (event.code === "Space" && isRecording) {
         handleRecordStop();
       }
@@ -110,7 +104,7 @@ const Index = () => {
           <video ref={videoRef} autoPlay style={{ width: "100%", height: "auto" }} />
         </Box>
         <Text>{status === "recording" ? "Recording..." : status === "waiting" ? "Sending to Gemini..." : status === "playing" ? "Playing response..." : "Press and hold spacebar to start recording"}</Text>
-        <Button onClick={handleRecordStart} disabled={isRecording} position="absolute" bottom="10px">
+        <Button onClick={handleRecordStart} disabled={isRecording} position="fixed" bottom="10px">
           Start Preflight Audio Check
         </Button>
       </VStack>
