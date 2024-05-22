@@ -25,6 +25,7 @@ const Index = () => {
   }, []);
 
   const handleRecordStart = async () => {
+    if (isRecording) return;
     if (!audioStream) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -64,9 +65,15 @@ const Index = () => {
       if (event.code === "Space" && !isRecording) {
         handleRecordStart();
       }
+      if (event.code === "Space" && !isRecording) {
+        handleRecordStart();
+      }
     };
 
     const handleKeyUp = (event) => {
+      if (event.code === "Space" && isRecording) {
+        handleRecordStop();
+      }
       if (event.code === "Space" && isRecording) {
         handleRecordStop();
       }
@@ -96,14 +103,14 @@ const Index = () => {
   };
 
   return (
-    <Container centerContent maxW="container.md" height="100vh" display="flex" flexDirection="column" justifyContent="center" alignItems="center">
+    <Container centerContent maxW="container.md" height="100vh" display="flex" flexDirection="column" justifyContent="center" alignItems="center" position="relative">
       <VStack spacing={4}>
         <Text fontSize="2xl">Camera and Microphone Access</Text>
         <Box>
           <video ref={videoRef} autoPlay style={{ width: "100%", height: "auto" }} />
         </Box>
         <Text>{status === "recording" ? "Recording..." : status === "waiting" ? "Sending to Gemini..." : status === "playing" ? "Playing response..." : "Press and hold spacebar to start recording"}</Text>
-        <Button onClick={handleRecordStart} disabled={isRecording}>
+        <Button onClick={handleRecordStart} disabled={isRecording} position="absolute" bottom="10px">
           Start Preflight Audio Check
         </Button>
       </VStack>
