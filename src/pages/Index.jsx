@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Container, VStack, Text, Box, Spinner } from "@chakra-ui/react";
+import { Container, VStack, Text, Box, Button } from "@chakra-ui/react";
 import { FaMicrophone } from "react-icons/fa";
 
 const Index = () => {
@@ -24,18 +24,31 @@ const Index = () => {
     getMedia();
   }, []);
 
-  const handleRecordStart = () => {
+  const handleRecordStart = async () => {
+    if (!audioStream) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        setAudioStream(stream);
+      } catch (err) {
+        console.error("Error accessing audio devices.", err);
+        return;
+      }
+    }
     setIsRecording(true);
     setStatus("recording");
   };
 
   const handleRecordStop = () => {
-    audioStream.getTracks().forEach((track) => track.stop());
-    videoStream.getTracks().forEach((track) => track.stop());
+    if (audioStream) {
+      audioStream.getTracks().forEach((track) => track.stop());
+    }
+    if (videoStream) {
+      videoStream.getTracks().forEach((track) => track.stop());
+    }
     setIsRecording(false);
     setStatus("waiting");
 
-    sendToGeminiAPI(audioStream)
+    sendToGeminiAPI()
       .then((response) => {
         setStatus("playing");
         playResponse(response);
@@ -68,8 +81,9 @@ const Index = () => {
     };
   }, [isRecording]);
 
-  const sendToGeminiAPI = async (stream) => {
-    return new Promise((resolve) => {
+  const sendToGeminiAPI = async () => {
+    // Simulate sending audio data to Gemini API and receiving a response
+    return new Promise((resolve, reject) => {
       setTimeout(() => {
         resolve("Response from Gemini API");
       }, 2000);
@@ -77,7 +91,8 @@ const Index = () => {
   };
 
   const playResponse = (response) => {
-    console.log(response);
+    const audio = new Audio("data:audio/wav;base64," + response);
+    audio.play();
   };
 
   return (
@@ -88,6 +103,9 @@ const Index = () => {
           <video ref={videoRef} autoPlay style={{ width: "100%", height: "auto" }} />
         </Box>
         <Text>{status === "recording" ? "Recording..." : status === "waiting" ? "Sending to Gemini..." : status === "playing" ? "Playing response..." : "Press and hold spacebar to start recording"}</Text>
+        <Button onClick={handleRecordStart} disabled={isRecording}>
+          Start Preflight Audio Check
+        </Button>
       </VStack>
     </Container>
   );
