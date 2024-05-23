@@ -26,38 +26,35 @@ const Index = () => {
 
   const handleRecordStart = async () => {
     if (isRecording) return;
-    if (!audioStream) {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        setAudioStream(stream);
-      } catch (err) {
-        console.error("Error accessing audio devices.", err);
-        return;
-      }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.start();
+      setIsRecording(true);
+      setStatus("recording");
+
+      let audioChunks = [];
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunks.push(event.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks);
+        sendToGeminiAPI(audioBlob);
+        setIsRecording(false);
+        setStatus("waiting");
+      };
+
+      setAudioStream(mediaRecorder);
+    } catch (err) {
+      console.error("Error accessing audio devices.", err);
     }
-    setIsRecording(true);
-    setStatus("recording");
   };
 
   const handleRecordStop = () => {
     if (audioStream) {
-      audioStream.getTracks().forEach((track) => track.stop());
+      audioStream.stop();
     }
-    if (videoStream) {
-      videoStream.getTracks().forEach((track) => track.stop());
-    }
-    setIsRecording(false);
-    setStatus("waiting");
-
-    sendToGeminiAPI()
-      .then((response) => {
-        setStatus("playing");
-        playResponse(response);
-      })
-      .catch((error) => {
-        console.error("Error sending to Gemini API", error);
-        setStatus("idle");
-      });
   };
 
   useEffect(() => {
@@ -82,19 +79,17 @@ const Index = () => {
     };
   }, [isRecording]);
 
-  const sendToGeminiAPI = async () => {
+  const sendToGeminiAPI = async (audioBlob) => {
     try {
+      const formData = new FormData();
+      formData.append("audio", audioBlob);
+
       const response = await fetch("https://api.your-gemini-endpoint.com/generate", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${process.env.REACT_APP_GOOGLE_API_KEY}`,
         },
-        body: JSON.stringify({
-          model: "gemini-pro",
-          prompt: "Your audio data here",
-          stream: true,
-        }),
+        body: formData,
       });
 
       if (!response.ok) {
@@ -106,11 +101,11 @@ const Index = () => {
       let result;
       while (!(result = await reader.read()).done) {
         const chunk = decoder.decode(result.value, { stream: true });
-        console.log(chunk);
+        console.log("Received chunk:", chunk);
         playResponse(chunk);
       }
     } catch (error) {
-      console.error("Error sending to Gemini API", error);
+      console.error("Error sending data to Gemini API:", error);
       setStatus("idle");
     }
   };
